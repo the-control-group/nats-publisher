@@ -1,3 +1,25 @@
+# 51 valid events
+# 1 session
+# 1 deadletter
+# 1 dbx ignored event
+# 1 invalid event
+
+# Note current invalid events still write to __events which are generating additional dls messages
+
+# Event-Dls expects 3 events
+# Event-Writer-Raw expects 54 events
+# Event-Writer-Dbx expects 1 session, 51 events
+
+# A deadletter message
+publish deadletter {"subject":"because","reason":"i said so","errors":["arcane"],"message":"invalidjson","process":"test"}
+
+# A message the events-service doesn't care about
+publish ignored.event {"event_name": "ignored.event", "created":"2006-01-02T15:04:05Z","session_id":"73A5CC84-1090-44B6-9A8F-E3B9A29EA8B7", "id": "A92C21E2-1BEA-48C6-9182-AA36E54190D6", "customer":{"id":12345,"email":"testcustomerleadevent@thecontrolgroup.com","first_name":"Santa","last_name":"Claus"},"order":{"id":45678}}
+
+# An invalid customer conversion event (missing customer object)
+publish customer.conversion {"event_name": "customer.conversion", "created":"2006-01-02T15:04:05Z", "session_id":"73A5CC84-1090-44B6-9A8F-E3B9A29EA8B7", "id": "A92C21E2-1BEA-48C6-9182-AA36E54190D6", "order":{"id":45678}}
+publish session {invalidjson
+
 # A sesison event that shouldn't end up in the events table
 publish session {"event_name": "session", "id": "73A5CC84-1090-44B6-9A8F-E3B9A29EA8B7", "created": "2006-01-02T15:04:05Z", "brand_slug": "test"}
 

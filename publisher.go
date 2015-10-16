@@ -3,7 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
+	_ "encoding/json"
 	"errors"
 	"flag"
 	log "github.com/Sirupsen/logrus"
@@ -20,7 +20,7 @@ var publishCmd = regexp.MustCompile(`^publish ([a-zA-z0-9-_\.:]+) ([^\r\n]*)[\r\
 var gnatsdHost = flag.String("gnatsd-host", "localhost", "Gnatsd host")
 var gnatsdPort = flag.String("gnatsd-port", "4222", "Gnatsd port")
 
-var nc *nats.EncodedConn
+var nc *nats.Conn
 
 func main() {
 	flag.Parse()
@@ -110,20 +110,24 @@ func handleConnection(c *net.TCPConn) {
 				if len(matches) != 3 {
 					err = errors.New(`Unrecognized pattern for command "publish"`)
 				} else {
-					var event map[string]interface{}
-					err := json.Unmarshal(matches[2], &event)
-					if err != nil {
-						log.WithField("err", err).Error("Bad json")
-						break
-					}
-					err = nc.Publish(string(matches[1]), event)
+					//					var event map[string]interface{}
+					//					err := json.Unmarshal(matches[2], &event)
+					//					if err != nil {
+					//						log.WithFields(log.Fields{"err": err, "msg": string(matches[2])}).Error("Bad json")
+					//						break
+					//					}
+					err = nc.Publish(string(matches[1]), matches[2])
 					if err != nil {
 						log.WithField("err", err).Error("Publish failed")
 						break
 					}
 					log.Debug("Message published")
 				}
+			case bytes.HasPrefix(msg, []byte(`#`)):
+				// Comment line
+				msg = lastMsg
 			case len(bytes.TrimSpace(msg)) == 0:
+				// Empty line
 				msg = lastMsg
 			default:
 				err = errors.New("Unrecognized command")
@@ -142,7 +146,7 @@ func apiHelp() string {
 	return `I only understand, "publish <subject> <message>"`
 }
 
-func newGnatsConnection(host, port string) *nats.EncodedConn {
+func newGnatsConnection(host, port string) *nats.Conn {
 	// Setup options to include all servers in the cluster
 	opts := nats.DefaultOptions
 	opts.Servers = []string{"nats://" + net.JoinHostPort(host, port)}
@@ -181,11 +185,9 @@ func newGnatsConnection(host, port string) *nats.EncodedConn {
 		log.WithFields(log.Fields{"url": nc.ConnectedUrl(), "subject": s.Subject, "queue": s.Queue, "err": err}).Warn("Gnatsd async error")
 	}
 
-	ec, err := nats.NewEncodedConn(nc, nats.JSON_ENCODER)
-
 	if err != nil {
 		log.WithField("error", err).Fatal("Unable to establish encoded connection")
 	}
 
-	return ec
+	return nc
 }
